@@ -1,32 +1,44 @@
 package com.example.scorekeeper
-
+import android.content.Intent
 import android.content.Context
 import android.os.Bundle
 import android.view.Menu
+import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
+import android.content.SharedPreferences
 import com.example.scorekeeper.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
+    private lateinit var sharedPreferences: SharedPreferences
     private lateinit var binding: ActivityMainBinding
     private var team1Score = 0
     private var team2Score = 0
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Retrieve night mode preference from SharedPreferences
-        val sharedPreferences = getSharedPreferences("scorekeeper", Context.MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences("scorekeeper", Context.MODE_PRIVATE)
         val nightMode = sharedPreferences.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_NO)
         AppCompatDelegate.setDefaultNightMode(nightMode)
+
 
         super.onCreate(savedInstanceState)
         // Initialize binding for the activity
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+
+        // Check if the save score setting is true, if not, set default team scores to 0
+        val saveScoreSetting = sharedPreferences.getBoolean("SAVE_SCORES", false)
+        team1Score = if (saveScoreSetting) sharedPreferences.getInt("TEAM_A_SCORE", 0) else 0
+        team2Score = if (saveScoreSetting) sharedPreferences.getInt("TEAM_B_SCORE", 0) else 0
+
+        // Update the UI with the current scores
+        updateTeam1ScoreText()
+        updateTeam2ScoreText()
 
         // Set up the scoring options in the spinner
         val scoringOptions = listOf("1", "2", "3", "6")
@@ -36,11 +48,11 @@ class MainActivity : AppCompatActivity() {
         binding.scoringSpinnerTeam1.adapter = adapter
         binding.scoringSpinnerTeam2.adapter = adapter
 
-        // Retrieve scores from SharedPreferences and update the UI
-        team1Score = sharedPreferences.getInt("team1_score", 0)
-        team2Score = sharedPreferences.getInt("team2_score", 0)
-        updateTeam1ScoreText()
-        updateTeam2ScoreText()
+//        // Retrieve scores from SharedPreferences and update the UI
+//        team1Score = sharedPreferences.getInt("team1_score", 0)
+//        team2Score = sharedPreferences.getInt("team2_score", 0)
+//        updateTeam1ScoreText()
+//        updateTeam2ScoreText()
 
         // Handle the click events for the buttons
         binding.team1IncreaseButton.setOnClickListener {
@@ -135,10 +147,55 @@ class MainActivity : AppCompatActivity() {
     // Update the displayed Team 1 score on the UI
     private fun updateTeam1ScoreText() {
         binding.team1Score.text = team1Score.toString()
+        saveScores()
     }
 
     // Update the displayed Team 2 score on the UI
     private fun updateTeam2ScoreText() {
         binding.team2Score.text = team2Score.toString()
+        saveScores()
+    }
+
+
+    // Menu item selection handling
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_about -> {
+                showAbout()
+                true
+            }
+            R.id.menu_settings -> {
+                openSettings()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun showAbout() {
+        val developerInfo = "Developer: Babita Rawat\nCourse Code: A00280963"
+        Toast.makeText(this, developerInfo, Toast.LENGTH_LONG).show()
+    }
+
+    private fun openSettings() {
+        // Implement this method to open the Settings Activity.
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun saveScores() {
+        sharedPreferences.edit()
+            .putInt("TEAM_A_SCORE", team1Score)
+            .putInt("TEAM_B_SCORE", team2Score)
+            .apply()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveScores()
+    }
+
+    companion object {
+        private const val REQUEST_SETTINGS = 1
     }
 }
